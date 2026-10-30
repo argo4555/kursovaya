@@ -1,0 +1,18 @@
+/* Дополнительные стили к Bootstrap */
+.login-box {
+    max-width: 360px;
+    margin: 80px auto;
+}
+
+.table td,
+.table th {
+    vertical-align: middle;
+}
+
+.inline-form {
+    display: inline;
+}
+
+.table {
+    font-size: 15px;
+}

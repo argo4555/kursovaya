@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Фильмы{% endblock %}
+
+{% block content %}
+<h3 class="mb-3">Фильмы</h3>
+
+<table class="table table-sm table-bordered table-hover text-nowrap">
+    <thead class="table-light">
+        <tr><th>№</th><th>Название</th><th>Жанр</th><th>Длительность, мин</th><th>Возраст</th><th></th></tr>
+    </thead>
+    <tbody>
+    {% for f in films %}
+        <tr>
+            <td>{{ f.id }}</td>
+            <td>{{ f.title }}</td>
+            <td>{{ f.genre }}</td>
+            <td>{{ f.duration }}</td>
+            <td>{{ f.age_limit }}</td>
+            <td>
+                <form class="inline-form" method="post" action="/films/{{ f.id }}/delete"
+                      onsubmit="return confirm('Удалить фильм?')">
+                    <button class="btn btn-sm btn-outline-danger">Удалить</button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h5 class="mt-4">Добавить фильм</h5>
+<form class="row g-2" method="post" action="/films/add">
+    <div class="col-md-4">
+        <label class="form-label" for="title">Название</label>
+        <input class="form-control" id="title" name="title" value="{{ form.title }}">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label" for="genre">Жанр</label>
+        <input class="form-control" id="genre" name="genre" value="{{ form.genre }}">
+    </div>
+    <div class="col-md-2">
+        <label class="form-label" for="duration">Длительность, мин</label>
+        <input class="form-control" id="duration" name="duration" value="{{ form.duration }}">
+    </div>
+    <div class="col-md-2">
+        <label class="form-label" for="age_limit">Возраст</label>
+        <select class="form-select" id="age_limit" name="age_limit">
+            {% for age in ["0+", "6+", "12+", "16+", "18+"] %}
+            <option {% if form.age_limit == age %}selected{% endif %}>{{ age }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-1 d-flex align-items-end">
+        <button class="btn btn-primary w-100">Добавить</button>
+    </div>
+</form>
+{% endblock %}

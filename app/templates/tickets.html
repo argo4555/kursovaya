@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Билеты{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Проданные билеты</h3>
+    <a class="btn btn-primary" href="/tickets/add">+ Продать билет</a>
+</div>
+
+<form class="row g-2 mb-3" method="get" action="/">
+    <div class="col-auto">
+        <select class="form-select" name="screening_id">
+            <option value="">Все сеансы</option>
+            {% for s in screenings %}
+            <option value="{{ s.id }}" {% if selected == s.id|string %}selected{% endif %}>
+                {{ s.start_time.strftime("%d.%m %H:%M") }} — {{ s.film.title }} (зал {{ s.hall }})
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-outline-secondary">Показать</button>
+    </div>
+</form>
+
+<table class="table table-sm table-bordered table-hover text-nowrap">
+    <thead class="table-light">
+        <tr>
+            <th>№</th><th>Фильм</th><th>Сеанс</th><th>Зал</th>
+            <th>Ряд</th><th>Место</th><th>Цена, ₽</th><th>Кассир</th><th>Продан</th>
+            {% if user.role == "admin" %}<th>Действия</th>{% endif %}
+        </tr>
+    </thead>
+    <tbody>
+    {% for t in tickets %}
+        <tr>
+            <td>{{ t.id }}</td>
+            <td>{{ t.screening.film.title }}</td>
+            <td>{{ t.screening.start_time.strftime("%d.%m.%Y %H:%M") }}</td>
+            <td>{{ t.screening.hall }}</td>
+            <td>{{ t.row_num }}</td>
+            <td>{{ t.seat_num }}</td>
+            <td>{{ t.screening.price }}</td>
+            <td>{{ t.cashier.full_name }}</td>
+            <td>{{ t.sold_at.strftime("%d.%m.%Y %H:%M") }}</td>
+            {% if user.role == "admin" %}
+            <td class="text-nowrap">
+                <a class="btn btn-sm btn-outline-primary" href="/tickets/{{ t.id }}/edit">Изменить</a>
+                <form class="inline-form" method="post" action="/tickets/{{ t.id }}/delete"
+                      onsubmit="return confirm('Удалить билет № {{ t.id }}?')">
+                    <button class="btn btn-sm btn-outline-danger">Удалить</button>
+                </form>
+            </td>
+            {% endif %}
+        </tr>
+    {% else %}
+        <tr><td colspan="10" class="text-center text-muted">Билетов нет</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<p><b>Продано билетов:</b> {{ tickets|length }}, <b>на сумму:</b> {{ total }} ₽</p>
+{% endblock %}

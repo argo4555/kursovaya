@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Сеансы{% endblock %}
+
+{% block content %}
+<h3 class="mb-3">Сеансы</h3>
+
+<table class="table table-sm table-bordered table-hover text-nowrap">
+    <thead class="table-light">
+        <tr><th>№</th><th>Фильм</th><th>Дата и время</th><th>Зал</th><th>Цена, ₽</th><th>Продано</th><th></th></tr>
+    </thead>
+    <tbody>
+    {% for s in screenings %}
+        <tr>
+            <td>{{ s.id }}</td>
+            <td>{{ s.film.title }}</td>
+            <td>{{ s.start_time.strftime("%d.%m.%Y %H:%M") }}</td>
+            <td>{{ s.hall }}</td>
+            <td>{{ s.price }}</td>
+            <td>{{ s.tickets|length }}</td>
+            <td>
+                <form class="inline-form" method="post" action="/screenings/{{ s.id }}/delete"
+                      onsubmit="return confirm('Удалить сеанс?')">
+                    <button class="btn btn-sm btn-outline-danger">Удалить</button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h5 class="mt-4">Добавить сеанс</h5>
+<form class="row g-2" method="post" action="/screenings/add">
+    <div class="col-md-4">
+        <label class="form-label" for="film_id">Фильм</label>
+        <select class="form-select" id="film_id" name="film_id">
+            <option value="">— выберите фильм —</option>
+            {% for f in films %}
+            <option value="{{ f.id }}" {% if form.film_id == f.id|string %}selected{% endif %}>{{ f.title }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label" for="hall">Зал</label>
+        <select class="form-select" id="hall" name="hall">
+            {% for h in ["1", "2", "3"] %}
+            <option {% if form.hall == h %}selected{% endif %}>{{ h }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label" for="start_time">Дата и время</label>
+        <input class="form-control" id="start_time" name="start_time" type="datetime-local" value="{{ form.start_time }}">
+    </div>
+    <div class="col-md-2">
+        <label class="form-label" for="price">Цена, ₽</label>
+        <input class="form-control" id="price" name="price" value="{{ form.price }}">
+    </div>
+    <div class="col-md-1 d-flex align-items-end">
+        <button class="btn btn-primary w-100">Добавить</button>
+    </div>
+</form>
+{% endblock %}

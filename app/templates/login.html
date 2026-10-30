@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Вход{% endblock %}
+
+{% block content %}
+<div class="login-box card">
+    <div class="card-body">
+        <h4 class="card-title mb-3">Вход в систему</h4>
+        <form method="post" action="/login">
+            <div class="mb-3">
+                <label class="form-label" for="login">Логин</label>
+                <input class="form-control" id="login" name="login" value="{{ login }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="password">Пароль</label>
+                <input class="form-control" id="password" name="password" type="password">
+            </div>
+            <button class="btn btn-primary w-100">Войти</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
