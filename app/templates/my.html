@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Мои продажи{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Мои продажи</h1>
+        <p>{{ user.full_name }} · смена {{ now()|ru_date }}</p>
+    </div>
+    <a class="btn btn-red" href="/">+ Продать билеты</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="kpi" style="--kpi-color: var(--red)"><span>Билетов</span><b>{{ count }}</b></div></div>
+    <div class="col-6 col-lg-3"><div class="kpi" style="--kpi-color: var(--gold)"><span>Выручка</span><b>{{ total|rub }}</b></div></div>
+    <div class="col-6 col-lg-3"><div class="kpi" style="--kpi-color: var(--blue)"><span>Картой</span><b>{{ card|rub }}</b></div></div>
+    <div class="col-6 col-lg-3"><div class="kpi" style="--kpi-color: var(--green)"><span>Наличными</span><b>{{ cash|rub }}</b><small>сдать в кассу</small></div></div>
+</div>
+
+<div class="panel p-0">
+    <div class="table-responsive">
+        <table class="table table-dark-glass">
+            <thead><tr><th class="ps-4">Время</th><th>Фильм</th><th>Сеанс</th><th>Места</th><th>Оплата</th><th class="text-end">Сумма</th><th class="pe-4"></th></tr></thead>
+            <tbody>
+            {% for code, items in orders.items() %}
+                {% set t = items[0] %}
+                <tr>
+                    <td class="ps-4 text-muted">{{ t.sold_at.strftime("%H:%M") }}</td>
+                    <td><div class="d-flex align-items-center gap-3"><img class="mini-poster" src="{{ t.screening.film.poster }}" alt=""><b>{{ t.screening.film.title }}</b></div></td>
+                    <td>{{ t.screening.start_time.strftime("%d.%m %H:%M") }} · зал {{ t.screening.hall }}</td>
+                    <td>{% for x in items %}<span class="pill me-1">{{ x.row_num }}-{{ x.seat_num }}</span>{% endfor %}</td>
+                    <td><span class="pill pill-{{ t.payment }}">{{ "Карта" if t.payment == "card" else "Наличные" }}</span></td>
+                    <td class="text-end fw-bold">{{ items|sum(attribute="price")|rub }}</td>
+                    <td class="pe-4 text-end"><a class="btn btn-sm btn-ghost" href="/order/{{ code }}?new=0">Билеты</a></td>
+                </tr>
+            {% else %}
+                <tr><td colspan="7" class="text-center text-muted py-5">Сегодня продаж ещё не было</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

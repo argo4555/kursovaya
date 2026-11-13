@@ -1,35 +1,65 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-bs-theme="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Кинотеатр{% endblock %} — Кинотеатр «Звезда»</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
 {% if user %}
-<nav class="navbar navbar-expand navbar-dark bg-dark">
-    <div class="container">
-        <a class="navbar-brand" href="/">Кинотеатр «Звезда»</a>
-        <ul class="navbar-nav me-auto">
-            <li class="nav-item"><a class="nav-link" href="/">Билеты</a></li>
-            {% if user.role == "admin" %}
-            <li class="nav-item"><a class="nav-link" href="/screenings">Сеансы</a></li>
-            <li class="nav-item"><a class="nav-link" href="/films">Фильмы</a></li>
-            {% endif %}
-        </ul>
-        <span class="navbar-text me-3">{{ user.full_name }}</span>
-        <a class="btn btn-outline-light btn-sm" href="/logout">Выход</a>
+{% set path = request.url.path %}
+{% set menu = {
+    "admin": [("/admin", "Дашборд"), ("/", "Касса"), ("/films", "Фильмы"), ("/screenings", "Расписание"),
+              ("/sales", "Продажи"), ("/finance", "Финансы"), ("/users", "Сотрудники")],
+    "cashier": [("/", "Касса"), ("/my", "Мои продажи")],
+    "accountant": [("/finance", "Финансы"), ("/sales", "Продажи")],
+}[user.role] %}
+<header class="topbar">
+    <a class="brand" href="{{ HOME[user.role] }}"><span class="brand-star">★</span><span>ЗВЕЗДА</span></a>
+    <nav class="topnav">
+        {% for href, name in menu %}
+        <a class="{% if path == href or (href != '/' and path.startswith(href)) or (href == '/' and path.startswith('/sell')) %}active{% endif %}" href="{{ href }}">{{ name }}</a>
+        {% endfor %}
+    </nav>
+    <div class="top-right">
+        <span class="clock" id="clock">{{ now().strftime("%H:%M") }}</span>
+        <div class="user-chip">
+            <span class="avatar">{{ user.full_name[:1] }}</span>
+            <span class="d-none d-lg-block">
+                <b>{{ user.full_name.split()[0] }} {{ user.full_name.split()[1][:1] }}.</b>
+                <small>{{ ROLE_NAMES[user.role] }}</small>
+            </span>
+        </div>
+        <a class="btn-icon" href="/logout" title="Выйти">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v9"/><path d="M6.4 6.4a8 8 0 1 0 11.2 0"/></svg>
+        </a>
     </div>
-</nav>
+</header>
 {% endif %}
 
-<div class="container mt-4">
+<main class="{% block main_class %}page{% endblock %}">
     {% if error %}
-    <div class="alert alert-danger">{{ error }}</div>
+    <div class="alert alert-danger alert-glass">{{ error }}</div>
+    {% endif %}
+    {% if message %}
+    <div class="alert alert-success alert-glass">{{ message }}</div>
     {% endif %}
     {% block content %}{% endblock %}
-</div>
+</main>
+
+<script>
+// Часы в верхней панели
+const clock = document.getElementById('clock');
+if (clock) {
+    setInterval(() => {
+        clock.textContent = new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'});
+    }, 10000);
+}
+</script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

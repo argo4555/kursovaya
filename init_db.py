@@ -3,6 +3,8 @@
 Запуск: python init_db.py
 Внимание: существующие таблицы удаляются и создаются заново.
 """
+import random
+import string
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
@@ -11,6 +13,7 @@ from sqlalchemy.engine import make_url
 
 from app.auth import hash_password
 from app.database import DATABASE_URL, SessionLocal, engine
+from app.halls import HALLS
 from app.models import Film, Screening, Ticket, User
 
 
@@ -34,7 +37,41 @@ def create_tables():
     print("Таблицы созданы")
 
 
+def order_code(rnd):
+    return "".join(rnd.choices(string.ascii_uppercase + string.digits, k=6))
+
+
+FILMS = [
+    ("Интерстеллар", "Фантастика", 2014, 169, "12+",
+     "Команда исследователей отправляется через червоточину в поисках нового дома для человечества."),
+    ("Брат", "Драма", 1997, 100, "18+",
+     "Демобилизованный Данила приезжает в Петербург к старшему брату и оказывается втянут в его дела."),
+    ("Чебурашка", "Семейный", 2023, 113, "6+",
+     "Загадочный ушастый зверёк появляется в приморском городке и меняет жизнь угрюмого садовника."),
+    ("Дюна", "Фантастика", 2021, 155, "12+",
+     "Наследник знатного рода оказывается на пустынной планете, от которой зависит судьба галактики."),
+    ("Холоп", "Комедия", 2019, 109, "16+",
+     "Избалованного мажора перевоспитывают, убедив, что он очутился в XIX веке крепостным."),
+    ("Король Лев", "Мультфильм", 1994, 88, "0+",
+     "Львёнок Симба должен пройти долгий путь, чтобы занять своё место в круге жизни."),
+    ("Начало", "Триллер", 2010, 148, "12+",
+     "Профессиональный вор проникает в сны, чтобы не украсть, а внедрить идею."),
+    ("Движение вверх", "Спорт", 2017, 133, "6+",
+     "История легендарной победы сборной СССР по баскетболу на Олимпиаде 1972 года."),
+    ("Москва слезам не верит", "Мелодрама", 1979, 150, "12+",
+     "Три подруги приезжают покорять столицу, и у каждой своя дорога к счастью."),
+    ("Аватар", "Фантастика", 2009, 162, "12+",
+     "Бывший морпех попадает на Пандору и встаёт перед выбором между двумя мирами."),
+]
+
+# Расписание залов: время начала сеансов
+SLOTS = {1: ["10:00", "13:30", "17:00", "20:30"], 2: ["11:00", "14:30", "18:00", "21:30"], 3: ["12:00", "16:00", "19:30"]}
+BASE_PRICE = {"10:00": 250, "11:00": 250, "12:00": 300, "13:30": 300, "14:30": 300, "16:00": 350,
+              "17:00": 400, "18:00": 400, "19:30": 450, "20:30": 450, "21:30": 400}
+
+
 def fill_data():
+    rnd = random.Random(2026)
     db = SessionLocal()
 
     admin = User(login="admin", password_hash=hash_password("1234"),
@@ -43,48 +80,58 @@ def fill_data():
                     full_name="Иванов Алексей Сергеевич", role="cashier")
     cashier2 = User(login="kassir2", password_hash=hash_password("2222"),
                     full_name="Петрова Мария Андреевна", role="cashier")
-    db.add_all([admin, cashier1, cashier2])
+    accountant = User(login="buh", password_hash=hash_password("3333"),
+                      full_name="Ковалёва Наталья Игоревна", role="accountant")
+    db.add_all([admin, cashier1, cashier2, accountant])
+    cashiers = [cashier1, cashier2]
 
-    films = [
-        Film(title="Интерстеллар", genre="Фантастика", duration=169, age_limit="12+"),
-        Film(title="Брат", genre="Драма", duration=100, age_limit="18+"),
-        Film(title="Чебурашка", genre="Семейный", duration=113, age_limit="6+"),
-        Film(title="Дюна", genre="Фантастика", duration=155, age_limit="12+"),
-        Film(title="Холоп", genre="Комедия", duration=109, age_limit="16+"),
-        Film(title="Король Лев", genre="Мультфильм", duration=88, age_limit="0+"),
-        Film(title="Начало", genre="Триллер", duration=148, age_limit="12+"),
-        Film(title="Движение вверх", genre="Спорт", duration=133, age_limit="6+"),
-        Film(title="Москва слезам не верит", genre="Мелодрама", duration=150, age_limit="12+"),
-        Film(title="Аватар", genre="Фантастика", duration=162, age_limit="12+"),
-    ]
+    films = [Film(title=t, genre=g, year=y, duration=d, age_limit=a, description=s) for t, g, y, d, a, s in FILMS]
     db.add_all(films)
 
-    # Сеансы на ближайшие три дня: (день, зал, время, номер фильма, цена)
+    # Сеансы: две недели назад, сегодня и два дня вперёд
     today = date.today()
-    plan = [
-        (0, 1, "10:00", 5, 250), (0, 1, "14:30", 0, 400), (0, 2, "18:00", 3, 450),
-        (0, 3, "21:00", 1, 350), (1, 1, "11:00", 2, 250), (1, 2, "16:00", 6, 400),
-        (1, 3, "19:30", 4, 450), (2, 1, "12:00", 7, 300), (2, 2, "17:00", 8, 350),
-        (2, 3, "20:00", 9, 500),
-    ]
-    screenings = []
-    for day, hall, start, film_index, price in plan:
-        start_time = datetime.combine(today + timedelta(days=day), time.fromisoformat(start))
-        screenings.append(Screening(film=films[film_index], hall=hall, start_time=start_time, price=price))
-    db.add_all(screenings)
+    now = datetime.now()
+    popularity = [0.9, 0.55, 0.7, 0.85, 0.65, 0.5, 0.75, 0.6, 0.45, 0.8]
+    for day in range(-14, 3):
+        for hall, slots in SLOTS.items():
+            for i, slot in enumerate(slots):
+                film_index = (day * 3 + hall * 2 + i) % len(films)
+                start = datetime.combine(today + timedelta(days=day), time.fromisoformat(slot))
+                price = round(BASE_PRICE[slot] * HALLS[hall]["factor"] / 10) * 10
+                screening = Screening(film=films[film_index], hall=hall, start_time=start, price=price)
+                db.add(screening)
 
-    # Проданные билеты: (номер сеанса, ряд, место, кассир)
-    sold = [
-        (0, 5, 6, cashier1), (0, 5, 7, cashier1), (1, 3, 1, cashier2), (1, 3, 2, cashier2),
-        (1, 7, 10, cashier1), (2, 6, 5, cashier1), (2, 6, 6, cashier1), (2, 6, 7, cashier2),
-        (3, 9, 12, cashier2), (4, 2, 4, cashier1), (5, 4, 4, cashier2), (5, 4, 5, cashier2),
-        (6, 8, 8, cashier1), (7, 1, 1, cashier2), (8, 10, 3, cashier1), (9, 5, 5, cashier2),
-    ]
-    sold_at = datetime.now() - timedelta(hours=len(sold))
-    for screening_index, row, seat, cashier in sold:
-        sold_at += timedelta(minutes=50)
-        db.add(Ticket(screening=screenings[screening_index], row_num=row, seat_num=seat,
-                      cashier=cashier, sold_at=sold_at))
+                # Заполняемость: выше вечером, в выходные и у популярных фильмов
+                weekend = start.weekday() >= 4
+                evening = slot >= "17:00"
+                fill = popularity[film_index] * rnd.uniform(0.35, 0.8) + 0.12 * weekend + 0.1 * evening
+                if start > now:  # на будущие сеансы продана только часть билетов
+                    fill *= 0.35 if day > 0 else 0.55
+                rows, seats = HALLS[hall]["rows"], HALLS[hall]["seats"]
+                target = int(rows * seats * min(fill, 0.95))
+
+                # Билеты покупают группами по 1–4 соседних места
+                taken = set()
+                attempts = 0
+                while len(taken) < target and attempts < 2000:
+                    attempts += 1
+                    size = rnd.choice([1, 2, 2, 2, 3, 4])
+                    row = rnd.randint(1, rows)
+                    first = rnd.randint(1, seats - size + 1)
+                    group = [(row, s) for s in range(first, first + size)]
+                    if any(place in taken for place in group):
+                        continue
+                    taken.update(group)
+                    code = order_code(rnd)
+                    cashier = rnd.choice(cashiers)
+                    payment = "card" if rnd.random() < 0.68 else "cash"
+                    if start > now:  # билеты на будущие сеансы купили заранее, за последние дни
+                        sold_at = now - timedelta(minutes=rnd.randint(30, 3 * 24 * 60))
+                    else:
+                        sold_at = start - timedelta(minutes=rnd.randint(5, 600))
+                    for row_num, seat_num in group:
+                        db.add(Ticket(screening=screening, row_num=row_num, seat_num=seat_num, price=price,
+                                      payment=payment, order_code=code, cashier=cashier, sold_at=sold_at))
 
     db.commit()
     db.close()

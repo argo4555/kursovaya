@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600">
+<rect width="400" height="600" rx="24" fill="#1a1d28"/>
+<rect x="20" y="20" width="360" height="560" rx="18" fill="none" stroke="#3a425f" stroke-width="3" stroke-dasharray="12 10"/>
+<text x="200" y="290" font-family="Segoe UI, Arial" font-size="64" fill="#3a425f" text-anchor="middle">★</text>
+<text x="200" y="340" font-family="Segoe UI, Arial" font-size="20" fill="#5b6380" text-anchor="middle">Постер появится</text>
+<text x="200" y="368" font-family="Segoe UI, Arial" font-size="20" fill="#5b6380" text-anchor="middle">после сохранения</text>
+</svg>

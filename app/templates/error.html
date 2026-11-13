@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Ошибка {{ code }}{% endblock %}
+{% block main_class %}login-page{% endblock %}
+
+{% block content %}
+<div class="login-card text-center">
+    <div style="font-size: 72px; font-weight: 800; background: linear-gradient(135deg, #ff3d57, #ffc145); -webkit-background-clip: text; color: transparent">{{ code }}</div>
+    <h4 class="fw-bold mb-2">{{ "Нет доступа" if code == 403 else ("Страница не найдена" if code == 404 else "Ошибка") }}</h4>
+    <p class="text-muted mb-4">{{ detail }}</p>
+    <div class="d-flex gap-2 justify-content-center">
+        <a class="btn btn-red" href="javascript:history.back()">Назад</a>
+        <a class="btn btn-ghost" href="/logout">Войти под другим пользователем</a>
+    </div>
+</div>
+{% endblock %}

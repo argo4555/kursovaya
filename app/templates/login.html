@@ -1,21 +1,26 @@
 {% extends "base.html" %}
 {% block title %}Вход{% endblock %}
+{% block main_class %}login-page{% endblock %}
 
 {% block content %}
-<div class="login-box card">
-    <div class="card-body">
-        <h4 class="card-title mb-3">Вход в систему</h4>
-        <form method="post" action="/login">
-            <div class="mb-3">
-                <label class="form-label" for="login">Логин</label>
-                <input class="form-control" id="login" name="login" value="{{ login }}">
-            </div>
-            <div class="mb-3">
-                <label class="form-label" for="password">Пароль</label>
-                <input class="form-control" id="password" name="password" type="password">
-            </div>
-            <button class="btn btn-primary w-100">Войти</button>
-        </form>
-    </div>
+<div class="login-wall" aria-hidden="true">
+    {% for film in wall %}<img src="{{ film.poster }}" alt="">{% endfor %}
+</div>
+
+<div class="login-card">
+    <div class="brand"><span class="brand-star">★</span><span>ЗВЕЗДА</span></div>
+    <p class="text-center text-muted mb-4">Кинотеатр · рабочее место сотрудника</p>
+    {% if login_error %}<div class="alert alert-danger py-2">{{ login_error }}</div>{% endif %}
+    <form method="post" action="/login">
+        <div class="mb-3">
+            <label class="form-label" for="login">Логин</label>
+            <input class="form-control form-control-lg" id="login" name="login" value="{{ login }}" autocomplete="username" autofocus>
+        </div>
+        <div class="mb-4">
+            <label class="form-label" for="password">Пароль</label>
+            <input class="form-control form-control-lg" id="password" name="password" type="password" autocomplete="current-password">
+        </div>
+        <button class="btn btn-red btn-lg w-100">Войти</button>
+    </form>
 </div>
 {% endblock %}

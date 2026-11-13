@@ -1,18 +1,34 @@
 """Запуск приложения: python run.py
 
-При первом запуске (пустая база данных) создаёт таблицы и тестовые данные.
+При первом запуске (или если структура базы устарела) создаёт таблицы и тестовые данные.
 """
 import os
+import time
 
-import uvicorn
-from sqlalchemy import inspect
+# Время приложения — московское (на хостинге по умолчанию UTC)
+os.environ.setdefault("TZ", "Europe/Moscow")
+if hasattr(time, "tzset"):
+    time.tzset()
 
-import init_db
-from app.database import engine
+import uvicorn  # noqa: E402
+from sqlalchemy import inspect  # noqa: E402
+
+import init_db  # noqa: E402
+from app.database import engine  # noqa: E402
+
+
+def schema_is_current():
+    """Таблицы есть и соответствуют текущей версии (у билетов есть код заказа)."""
+    inspector = inspect(engine)
+    if not inspector.has_table("tickets"):
+        return False
+    columns = {column["name"] for column in inspector.get_columns("tickets")}
+    return "order_code" in columns
+
 
 if __name__ == "__main__":
     init_db.create_database()
-    if not inspect(engine).has_table("users"):
+    if not schema_is_current():
         init_db.create_tables()
         init_db.fill_data()
 

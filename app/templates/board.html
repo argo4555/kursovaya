@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Касса{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Касса</h1>
+        <p>Нажмите на время сеанса, чтобы выбрать места</p>
+    </div>
+    <div class="segmented day-tabs">
+        {% for day in days %}
+        <a class="{% if loop.index0 == d %}active{% endif %}" href="/?d={{ loop.index0 }}">{{ day|day_label }}</a>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="metro">
+    {# Цветные плитки-показатели в стиле Windows 8 #}
+    <div class="tile flat c-red">
+        <span class="tile-icon">🎫</span>
+        <div><div class="big-num">{{ my_count }}</div>моих билетов сегодня</div>
+    </div>
+    <div class="tile flat c-violet">
+        <span class="tile-icon">₽</span>
+        <div><div class="big-num">{{ my_sum|num }}</div>рублей за смену</div>
+    </div>
+    {% if upcoming and d == 0 %}
+    <a class="tile wide flat c-blue" href="/sell/{{ upcoming.id }}">
+        <span class="tile-label">Ближайший сеанс</span>
+        <div>
+            <div class="big-num">{{ upcoming.start_time.strftime("%H:%M") }}</div>
+            {{ upcoming.film.title }} · {{ HALLS[upcoming.hall].name }}
+        </div>
+    </a>
+    {% endif %}
+    <div class="tile flat c-green">
+        <span class="tile-icon">💺</span>
+        <div><div class="big-num">{{ free_total|num }}</div>свободных мест</div>
+    </div>
+
+    {# Плитки фильмов: первая — самая крупная #}
+    {% for film, shows in tiles %}
+    <div class="tile {% if loop.first %}big{% elif loop.index in [2, 5] %}tall{% elif loop.index in [4, 7] %}wide{% endif %}">
+        <div class="tile-bg" style="background-image: url('{{ film.backdrop }}')"></div>
+        <span class="tile-label">{{ film.genre }} · {{ film.age_limit }}</span>
+        <h3>{{ film.title }}</h3>
+        <div class="tile-meta">{{ film.duration }} мин{% if loop.first %} · {{ film.description }}{% endif %}</div>
+        <div class="times">
+            {% for x in shows %}
+            <a class="time-chip {% if not x.open and x.free > 0 %}past{% elif x.free == 0 %}full{% elif x.free < 15 %}few{% endif %}"
+               href="/sell/{{ x.s.id }}">
+                {{ x.s.start_time.strftime("%H:%M") }}
+                <small>{% if x.free == 0 %}мест нет{% else %}{{ x.free }} мест · {{ x.s.price }} ₽{% endif %}</small>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="tile wide flat c-dark"><div><h3>Сеансов нет</h3>На этот день расписание не составлено</div></div>
+    {% endfor %}
+</div>
+{% endblock %}

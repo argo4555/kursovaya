@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Финансы{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Финансы</h1>
+        <p>{{ start.strftime("%d.%m.%Y") }} — {{ end.strftime("%d.%m.%Y") }} · выручка по дате продажи</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+        <div class="segmented">
+            <a class="{% if period == '7' %}active{% endif %}" href="/finance?period=7">7 дней</a>
+            <a class="{% if period == '30' %}active{% endif %}" href="/finance?period=30">30 дней</a>
+            <a class="{% if period == 'month' %}active{% endif %}" href="/finance?period=month">Месяц</a>
+        </div>
+        <form class="d-flex gap-2" method="get">
+            <input type="hidden" name="period" value="custom">
+            <input class="form-control" type="date" name="date_from" value="{{ start.isoformat() }}">
+            <input class="form-control" type="date" name="date_to" value="{{ end.isoformat() }}">
+            <button class="btn btn-ghost">Показать</button>
+        </form>
+        <a class="btn btn-red" href="/finance/export.csv?period={{ period }}&date_from={{ start.isoformat() }}&date_to={{ end.isoformat() }}">⬇ Excel (CSV)</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-xl-3">
+        <div class="kpi" style="--kpi-color: var(--gold)">
+            <span>Выручка</span><b>{{ revenue|rub }}</b>
+            {% if delta is not none %}
+            <small class="{{ 'text-green' if delta >= 0 else 'text-red' }} fw-bold">{{ '▲' if delta >= 0 else '▼' }} {{ delta|abs }}%</small>
+            <small> к прошлым {{ label }}</small>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="kpi" style="--kpi-color: var(--red)"><span>Продано билетов</span><b>{{ count|num }}</b><small>{{ orders|num }} покупок</small></div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="kpi" style="--kpi-color: var(--blue)"><span>Средний чек</span><b>{{ avg_check|rub }}</b><small>средний билет {{ avg_ticket|rub }}</small></div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="kpi" style="--kpi-color: var(--green)"><span>Заполняемость залов</span><b>{{ occupancy }}%</b><small>по прошедшим сеансам</small></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-xl-8">
+        <div class="panel h-100">
+            <div class="panel-title">Выручка по дням <span class="text-muted small fw-normal">картой и наличными</span></div>
+            <div style="height: 320px"><canvas id="chart-days"></canvas></div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="panel h-100">
+            <div class="panel-title">Способы оплаты</div>
+            <div style="height: 240px"><canvas id="chart-pay"></canvas></div>
+            <div class="d-flex justify-content-around mt-3 text-center">
+                <div><div class="text-muted small">Картой</div><b class="fs-5" style="color: var(--blue)">{{ card|rub }}</b></div>
+                <div><div class="text-muted small">Наличными</div><b class="fs-5 text-green">{{ (revenue - card)|rub }}</b></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-xl-6">
+        <div class="panel h-100">
+            <div class="panel-title">Выручка по фильмам</div>
+            <div style="height: 320px"><canvas id="chart-films"></canvas></div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="panel h-100">
+            <div class="panel-title">По дням недели</div>
+            <div style="height: 320px"><canvas id="chart-week"></canvas></div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="panel h-100">
+            <div class="panel-title">Заполняемость залов</div>
+            <div style="height: 320px"><canvas id="chart-halls"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<div class="panel p-0">
+    <div class="panel-title px-4 pt-4">Продажи по кассирам</div>
+    <div class="table-responsive">
+        <table class="table table-dark-glass">
+            <thead><tr><th class="ps-4">Кассир</th><th class="text-end">Покупок</th><th class="text-end">Билетов</th>
+                <th class="text-end">Картой</th><th class="text-end">Наличными</th><th class="text-end">Средний чек</th><th class="text-end pe-4">Выручка</th></tr></thead>
+            <tbody>
+            {% for name, tickets, sum, card_sum, cnt_orders in by_cashier %}
+            <tr>
+                <td class="ps-4"><div class="d-flex align-items-center gap-2"><span class="avatar" style="width:32px;height:32px">{{ name[:1] }}</span>{{ name }}</div></td>
+                <td class="text-end">{{ cnt_orders|num }}</td>
+                <td class="text-end">{{ tickets|num }}</td>
+                <td class="text-end">{{ card_sum|rub }}</td>
+                <td class="text-end">{{ (sum - card_sum)|rub }}</td>
+                <td class="text-end">{{ (sum / cnt_orders)|rub }}</td>
+                <td class="text-end pe-4 fw-bold text-gold">{{ sum|rub }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted py-4">За период продаж нет</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const data = {{ chart|tojson }};
+const rub = v => Number(v).toLocaleString('ru-RU') + ' ₽';
+Chart.defaults.color = '#8a91a6';
+Chart.defaults.font.family = 'Manrope, Segoe UI, sans-serif';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.plugins.tooltip.backgroundColor = '#1a1d28';
+Chart.defaults.plugins.tooltip.padding = 12;
+Chart.defaults.plugins.tooltip.cornerRadius = 10;
+
+// Выручка по дням: столбцы «картой» и «наличными» друг на друге, линия — количество билетов
+new Chart(document.getElementById('chart-days'), {
+    data: {
+        labels: data.days,
+        datasets: [
+            {type: 'bar', label: 'Картой', data: data.card, backgroundColor: '#4aa8ff', borderRadius: 6, stack: 'r'},
+            {type: 'bar', label: 'Наличными', data: data.cash, backgroundColor: '#2fd18b', borderRadius: 6, stack: 'r'},
+            {type: 'line', label: 'Билетов', data: data.tickets, yAxisID: 'y2', borderColor: '#ffc145',
+             backgroundColor: '#ffc145', tension: 0.35, pointRadius: 3},
+        ],
+    },
+    options: {
+        maintainAspectRatio: false,
+        interaction: {mode: 'index', intersect: false},
+        scales: {
+            x: {stacked: true, grid: {display: false}},
+            y: {stacked: true, ticks: {callback: v => (v / 1000) + ' тыс.'}},
+            y2: {position: 'right', grid: {display: false}},
+        },
+        plugins: {tooltip: {callbacks: {label: c => c.dataset.label + ': ' + (c.dataset.yAxisID ? c.raw : rub(c.raw))}}},
+    },
+});
+
+new Chart(document.getElementById('chart-pay'), {
+    type: 'doughnut',
+    data: {labels: ['Картой', 'Наличными'], datasets: [{data: data.payment, backgroundColor: ['#4aa8ff', '#2fd18b'], borderWidth: 0}]},
+    options: {maintainAspectRatio: false, cutout: '72%', plugins: {legend: {position: 'bottom'}, tooltip: {callbacks: {label: c => rub(c.raw)}}}},
+});
+
+new Chart(document.getElementById('chart-films'), {
+    type: 'bar',
+    data: {labels: data.films, datasets: [{data: data.film_revenue, borderRadius: 8,
+        backgroundColor: ['#ff3d57', '#ff6a3d', '#ff8f3d', '#ffc145', '#9b7bff', '#4aa8ff', '#2fd18b', '#5ad1ff']}]},
+    options: {indexAxis: 'y', maintainAspectRatio: false, plugins: {legend: {display: false}, tooltip: {callbacks: {label: c => rub(c.raw)}}},
+              scales: {x: {ticks: {callback: v => (v / 1000) + ' тыс.'}}, y: {grid: {display: false}}}},
+});
+
+new Chart(document.getElementById('chart-week'), {
+    type: 'bar',
+    data: {labels: data.weekdays, datasets: [{data: data.weekday_revenue, borderRadius: 8,
+        backgroundColor: data.weekdays.map((_, i) => i >= 4 ? '#ff3d57' : '#3a425f')}]},
+    options: {maintainAspectRatio: false, plugins: {legend: {display: false}, tooltip: {callbacks: {label: c => rub(c.raw)}}},
+              scales: {y: {ticks: {callback: v => (v / 1000) + 'k'}}, x: {grid: {display: false}}}},
+});
+
+new Chart(document.getElementById('chart-halls'), {
+    type: 'bar',
+    data: {labels: data.halls.map(h => h.split(' · ')[1] || h), datasets: [{data: data.hall_fill, borderRadius: 8,
+        backgroundColor: ['#4aa8ff', '#9b7bff', '#ffc145']}]},
+    options: {maintainAspectRatio: false, plugins: {legend: {display: false}, tooltip: {callbacks: {label: c => c.raw + '%'}}},
+              scales: {y: {min: 0, max: 100, ticks: {callback: v => v + '%'}}, x: {grid: {display: false}}}},
+});
+</script>
+{% endblock %}

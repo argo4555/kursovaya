@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ "Изменение фильма" if film else "Новый фильм" }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <a class="text-muted" href="/films">← К фильмам</a>
+        <h1>{{ film.title if film else "Новый фильм" }}</h1>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-3 col-md-4">
+        <img id="preview" class="order-poster" style="max-height:none"
+             src="{{ form.poster_url or (film.poster if film else '/static/poster-empty.svg') }}"
+             data-fallback="{{ '/posters/%d.svg' % film.id if film else '/static/poster-empty.svg' }}"
+             onerror="this.src=this.dataset.fallback" alt="Постер">
+        <p class="text-muted small mt-2">Если ссылку на постер не указать, приложение нарисует постер само — в цветах жанра.</p>
+    </div>
+    <div class="col-lg-9 col-md-8">
+        <form class="panel" method="post">
+            <div class="row g-3">
+                <div class="col-md-8"><label class="form-label" for="title">Название *</label>
+                    <input class="form-control" id="title" name="title" maxlength="150" value="{{ form.title }}"></div>
+                <div class="col-md-4"><label class="form-label" for="genre">Жанр *</label>
+                    <select class="form-select" id="genre" name="genre">
+                        {% for g in genres %}<option {% if g == form.genre %}selected{% endif %}>{{ g }}</option>{% endfor %}
+                    </select></div>
+                <div class="col-md-4"><label class="form-label" for="year">Год *</label>
+                    <input class="form-control" id="year" name="year" inputmode="numeric" value="{{ form.year }}"></div>
+                <div class="col-md-4"><label class="form-label" for="duration">Длительность, мин *</label>
+                    <input class="form-control" id="duration" name="duration" inputmode="numeric" value="{{ form.duration }}"></div>
+                <div class="col-md-4"><div class="form-label">Возраст *</div>
+                    <div class="segmented w-100">
+                        {% for a in ages %}
+                        <input type="radio" name="age_limit" id="age{{ loop.index }}" value="{{ a }}" {% if a == form.age_limit %}checked{% endif %}>
+                        <label for="age{{ loop.index }}">{{ a }}</label>
+                        {% endfor %}
+                    </div></div>
+                <div class="col-12"><label class="form-label" for="description">Описание</label>
+                    <textarea class="form-control" id="description" name="description" rows="3">{{ form.description }}</textarea></div>
+                <div class="col-12"><label class="form-label" for="poster_url">Ссылка на постер (необязательно)</label>
+                    <input class="form-control" id="poster_url" name="poster_url" placeholder="https://..." value="{{ form.poster_url }}"></div>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn btn-red px-4">Сохранить</button>
+                <a class="btn btn-ghost" href="/films">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Предпросмотр постера при вводе ссылки
+const preview = document.getElementById('preview');
+document.getElementById('poster_url').addEventListener('change', e => {
+    preview.src = e.target.value.trim() || preview.dataset.fallback;
+});
+</script>
+{% endblock %}

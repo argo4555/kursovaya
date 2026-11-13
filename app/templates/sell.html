@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Продажа · {{ s.film.title }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <a class="text-muted" href="/">← К сеансам</a>
+        <h1>{{ s.film.title }}</h1>
+        <p>{{ s.start_time.date()|day_label }}, {{ s.start_time.strftime("%H:%M") }} · {{ hall.name }} · свободно {{ free }} из {{ capacity(s.hall) }}</p>
+    </div>
+</div>
+
+<div class="sell-layout">
+    <div class="panel hall">
+        <div class="screen">ЭКРАН</div>
+        <div class="seat-rows" id="seats">
+            {% for row in range(1, hall.rows + 1) %}
+            <div class="seat-row">
+                <span class="row-label">{{ row }}</span>
+                {% for seat in range(1, hall.seats + 1) %}
+                    {% if seat == hall.seats // 2 + 1 %}<span class="gap"></span>{% endif %}
+                    {% if (row, seat) in taken %}
+                    <button type="button" class="seat taken" disabled title="Ряд {{ row }}, место {{ seat }} — продано">{{ seat }}</button>
+                    {% else %}
+                    <button type="button" class="seat {% if s.hall == 3 %}vip{% endif %}" data-row="{{ row }}" data-seat="{{ seat }}"
+                            title="Ряд {{ row }}, место {{ seat }}">{{ seat }}</button>
+                    {% endif %}
+                {% endfor %}
+                <span class="row-label">{{ row }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="legend">
+            <span><i style="background:#2a3046"></i>Свободно</span>
+            {% if s.hall == 3 %}<span><i style="background:#3b3216"></i>VIP-кресло</span>{% endif %}
+            <span><i style="background:linear-gradient(135deg,#ff3d57,#ff7a45)"></i>Выбрано</span>
+            <span><i style="background:#1a1d28"></i>Продано</span>
+        </div>
+    </div>
+
+    <form class="panel order-card" method="post" id="order-form">
+        <div class="order-film">
+            <img src="{{ s.film.poster }}" alt="">
+            <div>
+                <div class="pill mb-2">{{ s.film.genre }} · {{ s.film.age_limit }}</div>
+                <h5 class="fw-bold mb-1">{{ s.film.title }}</h5>
+                <div class="text-muted small">{{ s.film.duration }} мин · до {{ s.end_time.strftime("%H:%M") }}</div>
+                <div class="text-gold fw-bold mt-1">{{ s.price }} ₽ за билет</div>
+            </div>
+        </div>
+
+        <div class="form-label">Выбранные места</div>
+        <div class="picked" id="picked"><span class="text-muted bg-transparent px-0">Нажмите на свободные места в зале</span></div>
+        <input type="hidden" name="seats" id="seats-input" value="{{ picked }}">
+
+        <div class="form-label">Оплата</div>
+        <div class="row g-2">
+            <div class="col-6 pay-option">
+                <input type="radio" name="payment" id="pay-card" value="card" checked>
+                <label for="pay-card"><span>💳</span>Карта</label>
+            </div>
+            <div class="col-6 pay-option">
+                <input type="radio" name="payment" id="pay-cash" value="cash">
+                <label for="pay-cash"><span>💵</span>Наличные</label>
+            </div>
+        </div>
+
+        <div class="total-line">
+            <span class="text-muted" id="count-label">0 билетов</span>
+            <b id="total">0 ₽</b>
+        </div>
+        {% if can_sell %}
+        <button class="btn btn-red btn-sell" id="sell-btn" disabled>Продать</button>
+        {% else %}
+        <button class="btn btn-ghost btn-sell" disabled>Продажа закрыта</button>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Выбор мест на схеме зала: нажатие отмечает место, повторное — снимает отметку
+const price = {{ s.price }};
+const maxSeats = {{ max_seats }};
+const input = document.getElementById('seats-input');
+const picked = document.getElementById('picked');
+const totalEl = document.getElementById('total');
+const countEl = document.getElementById('count-label');
+const sellBtn = document.getElementById('sell-btn');
+let chosen = input.value ? input.value.split(',') : [];
+
+function plural(n) {
+    const m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return 'билет';
+    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'билета';
+    return 'билетов';
+}
+
+function render() {
+    document.querySelectorAll('.seat[data-row]').forEach(btn => {
+        btn.classList.toggle('selected', chosen.includes(btn.dataset.row + '-' + btn.dataset.seat));
+    });
+    input.value = chosen.join(',');
+    picked.innerHTML = '';
+    if (!chosen.length) {
+        picked.innerHTML = '<span class="text-muted bg-transparent px-0">Нажмите на свободные места в зале</span>';
+    }
+    chosen.forEach(key => {
+        const [row, seat] = key.split('-');
+        const chip = document.createElement('span');
+        chip.textContent = 'Ряд ' + row + ' · место ' + seat;
+        picked.appendChild(chip);
+    });
+    const total = chosen.length * price;
+    totalEl.textContent = total.toLocaleString('ru-RU') + ' ₽';
+    countEl.textContent = chosen.length + ' ' + plural(chosen.length);
+    if (sellBtn) {
+        sellBtn.disabled = chosen.length === 0;
+        sellBtn.textContent = chosen.length ? 'Продать ' + chosen.length + ' ' + plural(chosen.length) + ' · ' + total.toLocaleString('ru-RU') + ' ₽' : 'Продать';
+    }
+}
+
+document.getElementById('seats').addEventListener('click', e => {
+    const btn = e.target.closest('.seat[data-row]');
+    if (!btn) return;
+    const key = btn.dataset.row + '-' + btn.dataset.seat;
+    if (chosen.includes(key)) {
+        chosen = chosen.filter(k => k !== key);
+    } else if (chosen.length < maxSeats) {
+        chosen.push(key);
+    }
+    render();
+});
+render();
+</script>
+{% endblock %}

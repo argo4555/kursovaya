@@ -1,62 +1,66 @@
 {% extends "base.html" %}
-{% block title %}Сеансы{% endblock %}
+{% block title %}Расписание{% endblock %}
 
 {% block content %}
-<h3 class="mb-3">Сеансы</h3>
+<div class="page-head">
+    <div>
+        <h1>Расписание</h1>
+        <p>{{ day|day_label }} · {{ total }} сеансов · между сеансами 15 минут на уборку зала</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <div class="segmented">
+            {% for d in days %}
+            <a class="{% if d == day %}active{% endif %}" href="/screenings?day={{ d.isoformat() }}">{{ d|day_label if loop.index0 < 2 else d.strftime("%d.%m") }}</a>
+            {% endfor %}
+        </div>
+        <form method="get"><input class="form-control" type="date" name="day" value="{{ day.isoformat() }}" onchange="this.form.submit()"></form>
+    </div>
+</div>
 
-<table class="table table-sm table-bordered table-hover text-nowrap">
-    <thead class="table-light">
-        <tr><th>№</th><th>Фильм</th><th>Дата и время</th><th>Зал</th><th>Цена, ₽</th><th>Продано</th><th></th></tr>
-    </thead>
-    <tbody>
-    {% for s in screenings %}
-        <tr>
-            <td>{{ s.id }}</td>
-            <td>{{ s.film.title }}</td>
-            <td>{{ s.start_time.strftime("%d.%m.%Y %H:%M") }}</td>
-            <td>{{ s.hall }}</td>
-            <td>{{ s.price }}</td>
-            <td>{{ s.tickets|length }}</td>
-            <td>
-                <form class="inline-form" method="post" action="/screenings/{{ s.id }}/delete"
-                      onsubmit="return confirm('Удалить сеанс?')">
-                    <button class="btn btn-sm btn-outline-danger">Удалить</button>
+<div class="panel mb-4 timeline">
+    <div class="tl-scale">
+        <span></span>
+        <div class="tl-hours">
+            {% for h in hours %}<span style="left: {{ (loop.index0 / (hours|length - 1) * 100)|round(2) }}%">{{ "%02d"|format(h % 24) }}:00</span>{% endfor %}
+        </div>
+    </div>
+    {% for hall, items in lanes.items() %}
+    <div class="tl-row">
+        <div class="tl-hall">{{ HALLS[hall].name.split(" · ")[0] }}<small>{{ HALLS[hall].name.split(" · ")[1] }} · {{ capacity(hall) }} мест</small></div>
+        <div class="tl-track">
+            {% for x in items %}
+            <div class="tl-item" style="left: {{ x.left }}%; width: {{ x.width }}%; background-image: url('{{ x.s.film.backdrop }}')"
+                 title="{{ x.s.film.title }}, {{ x.s.start_time.strftime('%H:%M') }}–{{ x.s.end_time.strftime('%H:%M') }}, продано {{ x.sold }}">
+                <b>{{ x.s.film.title }}</b>
+                {{ x.s.start_time.strftime("%H:%M") }}–{{ x.s.end_time.strftime("%H:%M") }}<br>
+                {{ x.s.price }} ₽ · {{ x.pct }}%
+                {% if x.sold == 0 %}
+                <form class="tl-del" method="post" action="/screenings/{{ x.s.id }}/delete" onsubmit="return confirm('Удалить сеанс?')">
+                    <button class="btn btn-sm p-0 px-1 text-white" title="Удалить">✕</button>
                 </form>
-            </td>
-        </tr>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
     {% endfor %}
-    </tbody>
-</table>
+</div>
 
-<h5 class="mt-4">Добавить сеанс</h5>
-<form class="row g-2" method="post" action="/screenings/add">
-    <div class="col-md-4">
-        <label class="form-label" for="film_id">Фильм</label>
-        <select class="form-select" id="film_id" name="film_id">
-            <option value="">— выберите фильм —</option>
-            {% for f in films %}
-            <option value="{{ f.id }}" {% if form.film_id == f.id|string %}selected{% endif %}>{{ f.title }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-md-2">
-        <label class="form-label" for="hall">Зал</label>
-        <select class="form-select" id="hall" name="hall">
-            {% for h in ["1", "2", "3"] %}
-            <option {% if form.hall == h %}selected{% endif %}>{{ h }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-md-3">
-        <label class="form-label" for="start_time">Дата и время</label>
-        <input class="form-control" id="start_time" name="start_time" type="datetime-local" value="{{ form.start_time }}">
-    </div>
-    <div class="col-md-2">
-        <label class="form-label" for="price">Цена, ₽</label>
-        <input class="form-control" id="price" name="price" value="{{ form.price }}">
-    </div>
-    <div class="col-md-1 d-flex align-items-end">
-        <button class="btn btn-primary w-100">Добавить</button>
+<form class="panel" method="post" action="/screenings/add">
+    <div class="panel-title">Новый сеанс на {{ day|day_label|lower if day|day_label in ["Сегодня", "Завтра"] else day|day_label }}</div>
+    <input type="hidden" name="day" value="{{ day.isoformat() }}">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4"><label class="form-label">Фильм</label>
+            <select class="form-select" name="film_id"><option value="">— выберите фильм —</option>
+                {% for f in films %}<option value="{{ f.id }}" {% if form.film_id == f.id|string %}selected{% endif %}>{{ f.title }} ({{ f.duration }} мин)</option>{% endfor %}
+            </select></div>
+        <div class="col-md-3"><label class="form-label">Зал</label>
+            <select class="form-select" name="hall">
+                {% for h, info in HALLS.items() %}<option value="{{ h }}" {% if form.hall == h|string %}selected{% endif %}>{{ info.name }}</option>{% endfor %}
+            </select></div>
+        <div class="col-md-2"><label class="form-label">Начало</label><input class="form-control" type="time" name="start" value="{{ form.time }}"></div>
+        <div class="col-md-2"><label class="form-label">Цена, ₽</label><input class="form-control" name="price" inputmode="numeric" value="{{ form.price }}"></div>
+        <div class="col-md-1"><button class="btn btn-red w-100">＋</button></div>
     </div>
 </form>
 {% endblock %}

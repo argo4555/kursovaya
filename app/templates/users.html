@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Сотрудники{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Сотрудники</h1>
+        <p>{{ users|length }} учётных записей</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    {% for u in users %}
+    <div class="col-md-6 col-xl-3">
+        <div class="panel h-100 d-flex flex-column">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="avatar" style="width:52px;height:52px;font-size:20px">{{ u.full_name[:1] }}</span>
+                <div>
+                    <b>{{ u.full_name }}</b>
+                    <div class="text-muted small">@{{ u.login }}</div>
+                </div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap mb-3">
+                <span class="pill pill-{{ u.role }}">{{ ROLE_NAMES[u.role] }}</span>
+                {% if u.role in ["cashier", "admin"] and total.get(u.id) %}
+                <span class="pill">всего {{ total.get(u.id)|rub }}</span>
+                <span class="pill">сегодня {{ today.get(u.id, 0) }} бил.</span>
+                {% endif %}
+                {% if u.id == user.id %}<span class="pill">это вы</span>{% endif %}
+            </div>
+            <form class="d-flex gap-2 mt-auto" method="post" action="/users/{{ u.id }}/password">
+                <input class="form-control form-control-sm" type="password" name="password" placeholder="Новый пароль">
+                <button class="btn btn-sm btn-ghost text-nowrap">Сменить</button>
+            </form>
+            {% if u.id != user.id %}
+            <form class="mt-2" method="post" action="/users/{{ u.id }}/delete" onsubmit="return confirm('Удалить сотрудника {{ u.full_name }}?')">
+                <button class="btn btn-sm btn-link text-danger p-0">Удалить сотрудника</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<form class="panel" method="post" action="/users/add">
+    <div class="panel-title">Новый сотрудник</div>
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3"><label class="form-label">ФИО</label><input class="form-control" name="full_name" value="{{ form.full_name }}" placeholder="Фамилия Имя Отчество"></div>
+        <div class="col-md-2"><label class="form-label">Логин</label><input class="form-control" name="login" value="{{ form.login }}" placeholder="kassir3"></div>
+        <div class="col-md-2"><label class="form-label">Пароль</label><input class="form-control" type="password" name="password"></div>
+        <div class="col-md-3"><div class="form-label">Роль</div>
+            <div class="segmented sm">
+                {% for key, name in ROLE_NAMES.items() %}
+                <input type="radio" name="role" id="role-{{ key }}" value="{{ key }}" {% if form.role == key %}checked{% endif %}>
+                <label for="role-{{ key }}">{{ name }}</label>
+                {% endfor %}
+            </div></div>
+        <div class="col-md-2"><button class="btn btn-red w-100">Добавить</button></div>
+    </div>
+</form>
+{% endblock %}

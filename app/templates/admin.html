@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Дашборд{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ "Добрый вечер" if now().hour >= 17 else ("Добрый день" if now().hour >= 12 else "Доброе утро") }}, {{ user.full_name.split()[1] }}</h1>
+        <p>{{ now()|ru_date }} · {{ shows|length }} сеансов сегодня{% if live %} · <span class="text-red fw-bold">● идёт {{ live }}</span>{% endif %}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-ghost" href="/screenings">Расписание</a>
+        <a class="btn btn-red" href="/">Открыть кассу</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-xl-3">
+        <div class="kpi" style="--kpi-color: var(--gold)"><span>Выручка сегодня</span><b>{{ revenue|rub }}</b>
+            {% if delta is not none %}<small class="{{ 'text-green' if delta >= 0 else 'text-red' }} fw-bold">{{ '▲' if delta >= 0 else '▼' }} {{ delta|abs }}%</small><small> ко вчера на это время</small>{% endif %}
+        </div>
+    </div>
+    <div class="col-6 col-xl-3"><div class="kpi" style="--kpi-color: var(--red)"><span>Билетов сегодня</span><b>{{ count|num }}</b></div></div>
+    <div class="col-6 col-xl-3"><div class="kpi" style="--kpi-color: var(--green)"><span>Заполняемость дня</span><b>{{ occupancy }}%</b>
+        <div class="fill-bar mt-2"><i style="width: {{ occupancy }}%"></i></div></div></div>
+    <div class="col-6 col-xl-3"><div class="kpi" style="--kpi-color: var(--violet)"><span>Сеансов сегодня</span><b>{{ shows|length }}</b><small>в 3 залах</small></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-xl-8">
+        <div class="panel h-100">
+            <div class="panel-title">Выручка за 14 дней <a class="small fw-normal" href="/finance?period=30">Подробно →</a></div>
+            <div style="height: 260px"><canvas id="spark"></canvas></div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="panel h-100">
+            <div class="panel-title">Топ фильмов недели</div>
+            {% for film, tickets, sum in top %}
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="text-muted fw-bold" style="width:16px">{{ loop.index }}</span>
+                <img class="mini-poster" src="{{ film.poster }}" alt="">
+                <div class="flex-grow-1">
+                    <b>{{ film.title }}</b>
+                    <div class="text-muted small">{{ tickets|num }} билетов</div>
+                </div>
+                <b class="text-gold">{{ sum|rub }}</b>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-8">
+        <div class="panel">
+            <div class="panel-title">Сеансы сегодня</div>
+            {% for x in shows %}
+            <div class="d-flex align-items-center gap-3 py-2 border-bottom" style="border-color: var(--line) !important">
+                <b class="fs-5" style="width: 64px">{{ x.s.start_time.strftime("%H:%M") }}</b>
+                <img class="mini-poster" src="{{ x.s.film.poster }}" alt="">
+                <div style="min-width: 180px">
+                    <b>{{ x.s.film.title }}</b>
+                    <div class="text-muted small">{{ HALLS[x.s.hall].name }}</div>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between small text-muted mb-1"><span>{{ x.sold }} / {{ x.cap }}</span><span>{{ x.pct }}%</span></div>
+                    <div class="fill-bar"><i style="width: {{ x.pct }}%"></i></div>
+                </div>
+                {% if x.state == "live" %}<span class="pill pill-admin">● Идёт</span>
+                {% elif x.state == "done" %}<span class="pill">Завершён</span>
+                {% else %}<a class="pill pill-cashier" href="/sell/{{ x.s.id }}">Продажа</a>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="panel">
+            <div class="panel-title">Последние продажи <a class="small fw-normal" href="/sales">Журнал →</a></div>
+            {% for o in recent %}
+            <a class="d-flex align-items-center gap-3 mb-3 text-reset" href="/order/{{ o.code }}?new=0">
+                <span class="avatar" style="width:36px;height:36px">{{ o.t.cashier.full_name[:1] }}</span>
+                <div class="flex-grow-1">
+                    <b>{{ o.t.screening.film.title }}</b>
+                    <div class="text-muted small">{{ o.count }} бил. · {{ o.at.strftime("%d.%m %H:%M") }}</div>
+                </div>
+                <b>{{ o.total|rub }}</b>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const spark = {{ spark|tojson }};
+const ctx = document.getElementById('spark');
+const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 260);
+gradient.addColorStop(0, 'rgba(255, 61, 87, 0.45)');
+gradient.addColorStop(1, 'rgba(255, 61, 87, 0)');
+Chart.defaults.color = '#8a91a6';
+Chart.defaults.font.family = 'Manrope, Segoe UI, sans-serif';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+new Chart(ctx, {
+    type: 'line',
+    data: {labels: spark.labels, datasets: [{data: spark.values, fill: true, backgroundColor: gradient,
+        borderColor: '#ff3d57', borderWidth: 3, tension: 0.4, pointRadius: 0, pointHoverRadius: 6}]},
+    options: {maintainAspectRatio: false, plugins: {legend: {display: false},
+        tooltip: {callbacks: {label: c => Number(c.raw).toLocaleString('ru-RU') + ' ₽'}}},
+        scales: {x: {grid: {display: false}}, y: {ticks: {callback: v => (v / 1000) + ' тыс.'}}}},
+});
+</script>
+{% endblock %}

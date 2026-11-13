@@ -8,6 +8,11 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User
 
+ROLE_NAMES = {"admin": "Администратор", "cashier": "Кассир", "accountant": "Бухгалтер"}
+
+# Стартовая страница каждой роли
+HOME = {"admin": "/admin", "cashier": "/", "accountant": "/finance"}
+
 
 def hash_password(password: str) -> str:
     """Возвращает хеш пароля в виде «соль:хеш»."""
@@ -36,8 +41,18 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> User:
     return user
 
 
-def admin_user(user: User = Depends(current_user)) -> User:
-    """Пропускает только администратора."""
-    if user.role != "admin":
-        raise HTTPException(status_code=403, detail="Доступно только администратору")
-    return user
+def roles(*allowed: str):
+    """Зависимость, которая пускает на страницу только сотрудников с указанными ролями.
+
+    Пример: user: User = Depends(roles("admin", "accountant"))
+    """
+    def check(user: User = Depends(current_user)) -> User:
+        if user.role not in allowed:
+            raise HTTPException(status_code=403, detail="Недостаточно прав для этой страницы")
+        return user
+    return check
+
+
+admin_user = roles("admin")
+sales_user = roles("admin", "cashier")
+finance_user = roles("admin", "accountant")
