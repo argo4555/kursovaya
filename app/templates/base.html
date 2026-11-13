@@ -52,6 +52,26 @@
 </main>
 
 <script>
+// Числа в карточках показателей «набегают» от нуля до значения: 1 504 230 ₽, 49%, 3 999
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+document.querySelectorAll('.kpi b, .big-num').forEach(el => {
+    const text = el.textContent.trim();
+    const match = text.match(/^([\d\s ]+)(\D*)$/);
+    if (!match || reduceMotion) return;
+    const target = parseInt(match[1].replace(/\D/g, ''), 10);
+    const suffix = match[2];
+    if (!target) return;
+    const start = performance.now();
+    const duration = 900;
+    function step(now) {
+        const p = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * eased).toLocaleString('ru-RU') + suffix;
+        if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+});
+
 // Часы в верхней панели
 const clock = document.getElementById('clock');
 if (clock) {

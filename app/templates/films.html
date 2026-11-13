@@ -12,7 +12,7 @@
 
 <div class="film-grid">
     {% for f in films %}
-    <div class="film-card">
+    <div class="film-card" style="--n: {{ loop.index0 }}">
         <img src="{{ f.poster }}" alt="{{ f.title }}" onerror="this.src='/posters/{{ f.id }}.svg'">
         <div class="body">
             <h5>{{ f.title }}</h5>

@@ -309,7 +309,7 @@ a:hover { color: #ffd77a; }
     position: absolute;
     inset: 0;
     z-index: -1;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 25%, rgba(0, 0, 0, 0.85) 100%);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 28%, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.9) 100%);
 }
 
 .tile-label {
@@ -623,4 +623,62 @@ a:hover { color: #ffd77a; }
     .topbar, .no-print { display: none !important; }
     .ticket { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
     .ticket-stub::before, .ticket-stub::after { background: #fff; }
+}
+
+/* ==========================================================
+   Анимации
+   ========================================================== */
+@keyframes fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes tile-in { from { opacity: 0; transform: translateY(18px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes seat-pop { 0% { transform: scale(1); } 45% { transform: scale(1.22); } 100% { transform: scale(1); } }
+@keyframes ticket-in { from { opacity: 0; transform: translateY(30px) rotate(-2deg); } to { opacity: 1; transform: none; } }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 61, 87, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(255, 61, 87, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 61, 87, 0); } }
+@keyframes glow { 0%, 100% { box-shadow: 0 -18px 40px -10px rgba(140, 190, 255, 0.45); } 50% { box-shadow: 0 -22px 56px -8px rgba(140, 190, 255, 0.75); } }
+@keyframes shine { from { transform: translateX(-120%) skewX(-20deg); } to { transform: translateX(260%) skewX(-20deg); } }
+@keyframes drift { from { transform: rotate(-8deg) scale(1.15) translateY(0); } to { transform: rotate(-8deg) scale(1.15) translateY(-120px); } }
+
+/* Появление страницы: заголовок, панели и карточки показателей по очереди */
+.page > *, .page .row > [class*="col"] { animation: fade-up 0.5s ease both; }
+.page > *:nth-child(2) { animation-delay: 0.05s; }
+.page > *:nth-child(3) { animation-delay: 0.1s; }
+.page > *:nth-child(4) { animation-delay: 0.15s; }
+.page .row > [class*="col"]:nth-child(2) { animation-delay: 0.06s; }
+.page .row > [class*="col"]:nth-child(3) { animation-delay: 0.12s; }
+.page .row > [class*="col"]:nth-child(4) { animation-delay: 0.18s; }
+
+/* Плитки кассы и карточки фильмов вылетают волной */
+.metro .tile { animation: tile-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 45ms); }
+.film-grid .film-card { animation: tile-in 0.5s ease both; }
+.film-grid .film-card:nth-child(n) { animation-delay: calc(var(--n, 0) * 40ms); }
+.film-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.film-card:hover { transform: translateY(-6px); box-shadow: 0 22px 44px rgba(0, 0, 0, 0.45); }
+.film-card img { transition: transform 0.5s ease; }
+
+/* Выбор места: короткая «пружинка» */
+.seat.selected { animation: seat-pop 0.28s ease; }
+.screen { animation: glow 4s ease-in-out infinite; }
+
+/* Билеты появляются один за другим */
+.ticket { animation: ticket-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 110ms); }
+
+/* Точка «идёт сейчас» пульсирует */
+.live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--red); margin-right: 6px; vertical-align: 1px; animation: pulse 1.6s infinite; }
+
+/* Блик на главных кнопках при наведении */
+.btn-red { position: relative; overflow: hidden; }
+.btn-red::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent); transform: translateX(-120%) skewX(-20deg); }
+.btn-red:hover::after { animation: shine 0.8s ease; }
+
+/* Медленно плывущая стена постеров на входе */
+.login-wall { animation: drift 40s linear infinite alternate; }
+.login-card { animation: tile-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Строки таблиц и ленты подсвечиваются плавно */
+.table-dark-glass td { transition: background 0.15s; }
+.time-chip, .seat, .btn, .topnav a, .pay-option label { transition: all 0.18s ease; }
+.pay-option label:active, .seat:active, .time-chip:active { transform: scale(0.95); }
+
+/* Кто отключил анимации в системе — показываем всё сразу */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
 }

@@ -16,7 +16,7 @@
 
 <div class="tickets-grid">
     {% for t in tickets %}
-    <div class="ticket">
+    <div class="ticket" style="--i: {{ loop.index0 }}">
         <div class="ticket-main">
             <div class="ticket-brand">★ КИНОТЕАТР «ЗВЕЗДА»</div>
             <h4>{{ s.film.title }} <small class="text-secondary fs-6">{{ s.film.age_limit }}</small></h4>

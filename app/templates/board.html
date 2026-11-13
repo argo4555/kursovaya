@@ -16,16 +16,16 @@
 
 <div class="metro">
     {# Цветные плитки-показатели в стиле Windows 8 #}
-    <div class="tile flat c-red">
+    <div class="tile flat c-red" style="--i: 0">
         <span class="tile-icon">🎫</span>
         <div><div class="big-num">{{ my_count }}</div>моих билетов сегодня</div>
     </div>
-    <div class="tile flat c-violet">
+    <div class="tile flat c-violet" style="--i: 1">
         <span class="tile-icon">₽</span>
         <div><div class="big-num">{{ my_sum|num }}</div>рублей за смену</div>
     </div>
     {% if upcoming and d == 0 %}
-    <a class="tile wide flat c-blue" href="/sell/{{ upcoming.id }}">
+    <a class="tile wide flat c-blue" style="--i: 2" href="/sell/{{ upcoming.id }}">
         <span class="tile-label">Ближайший сеанс</span>
         <div>
             <div class="big-num">{{ upcoming.start_time.strftime("%H:%M") }}</div>
@@ -33,14 +33,14 @@
         </div>
     </a>
     {% endif %}
-    <div class="tile flat c-green">
+    <div class="tile flat c-green" style="--i: 3">
         <span class="tile-icon">💺</span>
         <div><div class="big-num">{{ free_total|num }}</div>свободных мест</div>
     </div>
 
     {# Плитки фильмов: первая — самая крупная #}
     {% for film, shows in tiles %}
-    <div class="tile {% if loop.first %}big{% elif loop.index in [2, 5] %}tall{% elif loop.index in [4, 7] %}wide{% endif %}">
+    <div class="tile {% if loop.first %}big{% elif loop.index in [2, 5] %}tall{% elif loop.index in [4, 7] %}wide{% endif %}" style="--i: {{ loop.index + 4 }}">
         <div class="tile-bg" style="background-image: url('{{ film.backdrop }}')"></div>
         <span class="tile-label">{{ film.genre }} · {{ film.age_limit }}</span>
         <h3>{{ film.title }}</h3>

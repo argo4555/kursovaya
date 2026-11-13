@@ -1,3 +1,4 @@
+import zlib
 from datetime import datetime, timedelta
 
 from sqlalchemy import ForeignKey, String, Text
@@ -30,19 +31,26 @@ class Film(Base):
     duration: Mapped[int]  # длительность в минутах
     age_limit: Mapped[str] = mapped_column(String(5))
     description: Mapped[str] = mapped_column(Text, default="")
-    poster_url: Mapped[str | None] = mapped_column(String(300))  # своя картинка; если нет — постер рисуется
+    poster_url: Mapped[str | None] = mapped_column(String(300))    # постер; если нет — рисуется приложением
+    backdrop_url: Mapped[str | None] = mapped_column(String(300))  # широкий кадр из фильма для плиток
 
     screenings: Mapped[list["Screening"]] = relationship(back_populates="film")
 
     @property
     def poster(self) -> str:
-        """Адрес постера: своя картинка или постер, нарисованный приложением."""
-        return self.poster_url or f"/posters/{self.id}.svg"
+        """Адрес постера: картинка через сервер приложения или нарисованный постер.
+        Метка v меняется вместе со ссылкой, чтобы браузер не показывал старую картинку из кэша."""
+        if self.poster_url:
+            return f"/media/{self.id}/poster?v={zlib.crc32(self.poster_url.encode())}"
+        return f"/posters/{self.id}.svg?v={zlib.crc32(self.title.encode())}"
 
     @property
     def backdrop(self) -> str:
-        """Фон для плиток: постер без надписей (название выводится поверх)."""
-        return self.poster_url or f"/posters/{self.id}.svg?bare=1"
+        """Фон для плиток: кадр из фильма, иначе постер без надписей."""
+        url = self.backdrop_url or self.poster_url
+        if url:
+            return f"/media/{self.id}/backdrop?v={zlib.crc32(url.encode())}"
+        return f"/posters/{self.id}.svg?bare=1"
 
 
 class Screening(Base):

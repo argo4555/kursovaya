@@ -23,7 +23,8 @@ CREATE TABLE films (
     duration    INTEGER      NOT NULL CHECK (duration BETWEEN 30 AND 300),
     age_limit   VARCHAR(5)   NOT NULL,
     description TEXT         NOT NULL DEFAULT '',
-    poster_url  VARCHAR(300)
+    poster_url   VARCHAR(300),
+    backdrop_url VARCHAR(300)
 );
 
 -- Сеансы

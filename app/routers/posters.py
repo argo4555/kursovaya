@@ -1,12 +1,17 @@
-"""Постеры фильмов, нарисованные приложением (SVG).
+"""Картинки фильмов.
 
-Используются, если у фильма не указана своя картинка: не зависят от интернета
-и сторонних сайтов, а цвета подбираются по жанру.
+/media/{id}/poster и /media/{id}/backdrop — постер и кадр из базы TMDB. Сервер скачивает картинку
+один раз, хранит в памяти и отдаёт браузеру сам: так она открывается, даже если у посетителя
+сайт TMDB недоступен. Если скачать не удалось, отдаётся постер, нарисованный приложением.
+
+/posters/{id}.svg — постер, нарисованный приложением, в цветах жанра.
 """
+import urllib.request
+from urllib.parse import urlparse
 from xml.sax.saxutils import escape
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import Response
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -82,3 +87,41 @@ def poster(film_id: int, bare: int = 0, db: Session = Depends(get_db)):
     if film is None:
         raise HTTPException(status_code=404)
     return Response(poster_svg(film, bool(bare)), media_type="image/svg+xml", headers={"Cache-Control": "max-age=3600"})
+
+
+# Сервер сам скачивает картинки только с этих сайтов; ссылки на другие сайты браузер открывает напрямую
+PROXY_HOSTS = {"image.tmdb.org"}
+MAX_IMAGE_SIZE = 5 * 1024 * 1024
+_cache: dict[str, tuple[bytes, str]] = {}
+
+
+def download(url: str) -> tuple[bytes, str] | None:
+    """Скачивает картинку (не больше 5 МБ). Возвращает (данные, тип) или None при ошибке."""
+    if url in _cache:
+        return _cache[url]
+    try:
+        request = urllib.request.Request(url, headers={"User-Agent": "kino-course-project"})
+        with urllib.request.urlopen(request, timeout=8) as response:
+            content_type = response.headers.get("Content-Type", "")
+            data = response.read(MAX_IMAGE_SIZE + 1)
+        if not content_type.startswith("image/") or len(data) > MAX_IMAGE_SIZE:
+            return None
+    except OSError:
+        return None
+    _cache[url] = (data, content_type)
+    return data, content_type
+
+
+@router.get("/media/{film_id}/{kind}")
+def media(film_id: int, kind: str, db: Session = Depends(get_db)):
+    film = db.get(Film, film_id)
+    if film is None or kind not in ("poster", "backdrop"):
+        raise HTTPException(status_code=404)
+    url = film.poster_url if kind == "poster" else (film.backdrop_url or film.poster_url)
+    bare = kind == "backdrop"
+    if url and urlparse(url).hostname not in PROXY_HOSTS:
+        return RedirectResponse(url)
+    image = download(url) if url else None
+    if image is None:  # нет ссылки или сайт недоступен — нарисованный постер
+        return Response(poster_svg(film, bare), media_type="image/svg+xml", headers={"Cache-Control": "max-age=300"})
+    return Response(image[0], media_type=image[1], headers={"Cache-Control": "max-age=86400"})

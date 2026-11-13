@@ -5,7 +5,7 @@
 <div class="page-head">
     <div>
         <h1>{{ "Добрый вечер" if now().hour >= 17 else ("Добрый день" if now().hour >= 12 else "Доброе утро") }}, {{ user.full_name.split()[1] }}</h1>
-        <p>{{ now()|ru_date }} · {{ shows|length }} сеансов сегодня{% if live %} · <span class="text-red fw-bold">● идёт {{ live }}</span>{% endif %}</p>
+        <p>{{ now()|ru_date }} · {{ shows|length }} сеансов сегодня{% if live %} · <span class="text-red fw-bold"><span class="live-dot"></span>идёт {{ live }}</span>{% endif %}</p>
     </div>
     <div class="d-flex gap-2">
         <a class="btn btn-ghost" href="/screenings">Расписание</a>
@@ -66,7 +66,7 @@
                     <div class="d-flex justify-content-between small text-muted mb-1"><span>{{ x.sold }} / {{ x.cap }}</span><span>{{ x.pct }}%</span></div>
                     <div class="fill-bar"><i style="width: {{ x.pct }}%"></i></div>
                 </div>
-                {% if x.state == "live" %}<span class="pill pill-admin">● Идёт</span>
+                {% if x.state == "live" %}<span class="pill pill-admin"><span class="live-dot"></span>Идёт</span>
                 {% elif x.state == "done" %}<span class="pill">Завершён</span>
                 {% else %}<a class="pill pill-cashier" href="/sell/{{ x.s.id }}">Продажа</a>{% endif %}
             </div>

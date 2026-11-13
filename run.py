@@ -18,12 +18,13 @@ from app.database import engine  # noqa: E402
 
 
 def schema_is_current():
-    """Таблицы есть и соответствуют текущей версии (у билетов есть код заказа)."""
+    """Таблицы есть и соответствуют текущей версии (код заказа у билетов, кадр у фильмов)."""
     inspector = inspect(engine)
-    if not inspector.has_table("tickets"):
+    if not inspector.has_table("tickets") or not inspector.has_table("films"):
         return False
-    columns = {column["name"] for column in inspector.get_columns("tickets")}
-    return "order_code" in columns
+    tickets = {column["name"] for column in inspector.get_columns("tickets")}
+    films = {column["name"] for column in inspector.get_columns("films")}
+    return "order_code" in tickets and "backdrop_url" in films
 
 
 if __name__ == "__main__":

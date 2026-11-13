@@ -64,6 +64,21 @@ FILMS = [
      "Бывший морпех попадает на Пандору и встаёт перед выбором между двумя мирами."),
 ]
 
+# Русские постеры и кадры из открытой базы фильмов TMDB (themoviedb.org): (постер, кадр)
+TMDB = "https://image.tmdb.org/t/p/"
+IMAGES = [
+    ("vReLRjDV9XPhiOSEW7QWow4DXwf", "8sNiAPPYU14PUepFNeSNGUTiHW"),   # Интерстеллар
+    ("1QTgAkpnPnlS6vDpA90cBL6OcRi", "g5821JEdxqj8bUBDV1FDhHbZkRa"),  # Брат
+    ("ldCLSVd88xFZSstQA43JfHnTMMr", "mEiiAukxP84j6ihIGQTNvLOlEOV"),  # Чебурашка
+    ("irwFnLniLSu0KkiK7FMAgLounCX", "qVgZu5BTx6pu4owCvVOm4zjTfOi"),  # Дюна
+    ("f78tgHLtWeVLl4JPygiIbCS8yE2", "qkurjJVQUs4u417GfiMAKlurkcM"),  # Холоп
+    ("j8tdiuhbF9p5mnAeA1YOUvz82xY", "wXsQvli6tWqja51pYxXNG1LFIGV"),  # Король Лев
+    ("piQXcdOGgv1O9HQ07pI0tnjkGJw", "8ZTVqvKDQ8emSGUEMjsS4yHAwrp"),  # Начало
+    ("7D16ms6w713xeiBOP5PhQHbd60B", "1GEfRXb4tfRAnLZH1ov11h9nBTS"),  # Движение вверх
+    ("gt2un5LYmp7G3J3UZL43RqYEv4R", "eVbDEVjNIj2fRBiWObMTcuI5bI3"),  # Москва слезам не верит
+    ("lUKcrcO3wEPhNnzGq06JIX7GIEb", "vL5LR6WdxWPjLPFRLe133jXWsh5"),  # Аватар
+]
+
 # Расписание залов: время начала сеансов
 SLOTS = {1: ["10:00", "13:30", "17:00", "20:30"], 2: ["11:00", "14:30", "18:00", "21:30"], 3: ["12:00", "16:00", "19:30"]}
 BASE_PRICE = {"10:00": 250, "11:00": 250, "12:00": 300, "13:30": 300, "14:30": 300, "16:00": 350,
@@ -85,7 +100,9 @@ def fill_data():
     db.add_all([admin, cashier1, cashier2, accountant])
     cashiers = [cashier1, cashier2]
 
-    films = [Film(title=t, genre=g, year=y, duration=d, age_limit=a, description=s) for t, g, y, d, a, s in FILMS]
+    films = [Film(title=t, genre=g, year=y, duration=d, age_limit=a, description=s,
+                  poster_url=f"{TMDB}w500/{poster}.jpg", backdrop_url=f"{TMDB}w1280/{backdrop}.jpg")
+             for (t, g, y, d, a, s), (poster, backdrop) in zip(FILMS, IMAGES)]
     db.add_all(films)
 
     # Сеансы: две недели назад, сегодня и два дня вперёд

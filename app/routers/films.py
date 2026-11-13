@@ -15,7 +15,7 @@ router = APIRouter()
 
 AGE_LIMITS = ["0+", "6+", "12+", "16+", "18+"]
 GENRES = list(PALETTES)
-FIELDS = ["title", "genre", "year", "duration", "age_limit", "description", "poster_url"]
+FIELDS = ["title", "genre", "year", "duration", "age_limit", "description", "poster_url", "backdrop_url"]
 
 
 def check_film(form: dict) -> str | None:
@@ -30,8 +30,9 @@ def check_film(form: dict) -> str | None:
         return "Длительность — число минут от 30 до 300"
     if form["age_limit"] not in AGE_LIMITS:
         return "Выберите возрастное ограничение"
-    if form["poster_url"] and (not form["poster_url"].startswith(("http://", "https://")) or len(form["poster_url"]) > 300):
-        return "Ссылка на постер должна начинаться с http:// или https://"
+    for field, name in (("poster_url", "постер"), ("backdrop_url", "кадр")):
+        if form[field] and (not form[field].startswith(("http://", "https://")) or len(form[field]) > 300):
+            return f"Ссылка на {name} должна начинаться с http:// или https://"
     return None
 
 
@@ -40,6 +41,7 @@ def apply(film: Film, form: dict):
     film.year, film.duration = int(form["year"]), int(form["duration"])
     film.description = form["description"]
     film.poster_url = form["poster_url"] or None
+    film.backdrop_url = form["backdrop_url"] or None
 
 
 def form_page(request, user, form, film=None, error=None):
@@ -48,9 +50,10 @@ def form_page(request, user, form, film=None, error=None):
     })
 
 
-def read_form(title, genre, year, duration, age_limit, description, poster_url):
+def read_form(title, genre, year, duration, age_limit, description, poster_url, backdrop_url):
     return {"title": title.strip(), "genre": genre.strip(), "year": year.strip(), "duration": duration.strip(),
-            "age_limit": age_limit, "description": description.strip(), "poster_url": poster_url.strip()}
+            "age_limit": age_limit, "description": description.strip(), "poster_url": poster_url.strip(),
+            "backdrop_url": backdrop_url.strip()}
 
 
 @router.get("/films")
@@ -75,8 +78,9 @@ def new_film_page(request: Request, user: User = Depends(admin_user)):
 @router.post("/films/new")
 def new_film(request: Request, title: str = Form(""), genre: str = Form(""), year: str = Form(""),
              duration: str = Form(""), age_limit: str = Form(""), description: str = Form(""),
-             poster_url: str = Form(""), db: Session = Depends(get_db), user: User = Depends(admin_user)):
-    form = read_form(title, genre, year, duration, age_limit, description, poster_url)
+             poster_url: str = Form(""), backdrop_url: str = Form(""),
+             db: Session = Depends(get_db), user: User = Depends(admin_user)):
+    form = read_form(title, genre, year, duration, age_limit, description, poster_url, backdrop_url)
     error = check_film(form)
     if error:
         return form_page(request, user, form, error=error)
@@ -99,11 +103,12 @@ def edit_film_page(request: Request, film_id: int, db: Session = Depends(get_db)
 @router.post("/films/{film_id}/edit")
 def edit_film(request: Request, film_id: int, title: str = Form(""), genre: str = Form(""), year: str = Form(""),
               duration: str = Form(""), age_limit: str = Form(""), description: str = Form(""),
-              poster_url: str = Form(""), db: Session = Depends(get_db), user: User = Depends(admin_user)):
+              poster_url: str = Form(""), backdrop_url: str = Form(""),
+              db: Session = Depends(get_db), user: User = Depends(admin_user)):
     film = db.get(Film, film_id)
     if film is None:
         raise HTTPException(status_code=404, detail="Фильм не найден")
-    form = read_form(title, genre, year, duration, age_limit, description, poster_url)
+    form = read_form(title, genre, year, duration, age_limit, description, poster_url, backdrop_url)
     error = check_film(form)
     if error:
         return form_page(request, user, form, film, error)

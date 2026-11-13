@@ -12,7 +12,7 @@
 <div class="row g-4">
     <div class="col-lg-3 col-md-4">
         <img id="preview" class="order-poster" style="max-height:none"
-             src="{{ form.poster_url or (film.poster if film else '/static/poster-empty.svg') }}"
+             src="{{ film.poster if film and film.poster_url == form.poster_url else (form.poster_url or (film.poster if film else '/static/poster-empty.svg')) }}"
              data-fallback="{{ '/posters/%d.svg' % film.id if film else '/static/poster-empty.svg' }}"
              onerror="this.src=this.dataset.fallback" alt="Постер">
         <p class="text-muted small mt-2">Если ссылку на постер не указать, приложение нарисует постер само — в цветах жанра.</p>
@@ -39,8 +39,10 @@
                     </div></div>
                 <div class="col-12"><label class="form-label" for="description">Описание</label>
                     <textarea class="form-control" id="description" name="description" rows="3">{{ form.description }}</textarea></div>
-                <div class="col-12"><label class="form-label" for="poster_url">Ссылка на постер (необязательно)</label>
+                <div class="col-md-6"><label class="form-label" for="poster_url">Ссылка на постер (необязательно)</label>
                     <input class="form-control" id="poster_url" name="poster_url" placeholder="https://..." value="{{ form.poster_url }}"></div>
+                <div class="col-md-6"><label class="form-label" for="backdrop_url">Ссылка на кадр для плиток кассы (необязательно)</label>
+                    <input class="form-control" id="backdrop_url" name="backdrop_url" placeholder="https://..." value="{{ form.backdrop_url }}"></div>
             </div>
             <div class="d-flex gap-2 mt-4">
                 <button class="btn btn-red px-4">Сохранить</button>
